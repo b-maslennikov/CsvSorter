@@ -6,7 +6,7 @@
 		<Copyright>Copyright © 2021 Boris Maslennikov</Copyright>
 		<Description>A small library that will help you to sort your large CSV files</Description>
 		<PackageIcon>logo.png</PackageIcon>
-		<PackageProjectUrl>https://github.com/b-maslennikov/CsvHelper</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/b-maslennikov/CsvSorter</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	  <PackageTags>CSV;Sort;Order;SortBy;OrderBy</PackageTags>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
