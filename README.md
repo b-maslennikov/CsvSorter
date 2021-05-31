@@ -45,7 +45,7 @@ You can create your own provider (DatabaseIndexProvider for example) by implemen
 public interface IIndexProvider<T> where T: IComparable
 {
     void Add(CsvSorterIndex<T> record);
-    IEnumerable<CsvSorterIndex<T>> GetSorteded(bool descending);
+    IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending);
     void Clear();
 }
 ```
