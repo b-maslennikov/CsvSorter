@@ -1,0 +1,10 @@
+version: '{branch}.{build}'
+image: Visual Studio 2019
+
+configuration: Release
+
+build_script:
+  - cmd: dotnet build
+
+test_script: 
+  - cmd: dotnet test --logger:Appveyor

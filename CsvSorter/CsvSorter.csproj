@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+		<Version>1.0.0</Version>
+		<Title>CsvSorter</Title>
+		<Authors>Boris Maslennikov</Authors>
+		<Copyright>Copyright © 2021 Boris Maslennikov</Copyright>
+		<Description>A small library that will help you to sort your large CSV files</Description>
+		<PackageIcon>logo.png</PackageIcon>
+		<PackageProjectUrl>https://github.com/b-maslennikov/CsvHelper</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <PackageTags>CSV;Sort;Order;SortBy;OrderBy</PackageTags>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageReleaseNotes>https://github.com/b-maslennikov/CsvSorter/blob/master/CHANGELOG.md</PackageReleaseNotes>
+	  <RepositoryType>git</RepositoryType>
+	  <RepositoryUrl>https://github.com/b-maslennikov/CsvSorter</RepositoryUrl>
+		<LangVersion>latest</LangVersion>
+		<TargetFrameworks>net45;net47;net50;netstandard2.0;netstandard2.1</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+		  <_Parameter1>CsvSorter.Tests</_Parameter1>
+		</AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
+		<PackageReference Include="csvhelper" Version="23.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+</Project>
