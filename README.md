@@ -50,6 +50,18 @@ public interface IIndexProvider<T> where T: IComparable
 }
 ```
 
+## Events
+You can specify 4 events: `OnIndexCreationStarted`, `OnIndexCreationFinished`, `OnSortingStarted` and `OnSortingFinished`
+```csharp
+new StreamReader(@"C:\my_large_file.csv")
+    .OrderBy<int>(0)
+    .OnIndexCreationStarted(() => { logger.Info("Index creation has started"); })
+    .OnIndexCreationFinished(() => { logger.Info("Index creation completed"); })
+    .OnSortingStarted(() => { logger.Info("Sorting has started"); })
+    .OnSortingFinished(() => { logger.Info("Sorting completed"); })
+    .ToWriter(writer);
+```
+
 ## A few more examples
 ```csharp
 var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)

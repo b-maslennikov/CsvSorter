@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
@@ -23,6 +24,11 @@ namespace CsvSorter
         private IIndexProvider<T> _indexProvider;
         private CsvConfiguration _csvConfig;
         private TypeConverterOptions _typeConverterOptions;
+
+        private Action _onIndexCreationStarted;
+        private Action _onIndexCreationFinished;
+        private Action _onSortingStarted;
+        private Action _onSortingFinished;
 
         private CsvSorter(StreamReader reader, bool descending)
         {
@@ -73,10 +79,39 @@ namespace CsvSorter
             return this;
         }
 
+        public CsvSorter<T> OnIndexCreationStarted(Action action)
+        {
+            _onIndexCreationStarted = action;
+            return this;
+        }
+
+        public CsvSorter<T> OnIndexCreationFinished(Action action)
+        {
+            _onIndexCreationFinished = action;
+            return this;
+        }
+
+        public CsvSorter<T> OnSortingStarted(Action action)
+        {
+            _onSortingStarted = action;
+            return this;
+        }
+
+        public CsvSorter<T> OnSortingFinished(Action action)
+        {
+            _onSortingFinished = action;
+            return this;
+        }
+
         public void ToFile(string filePath)
         {
             using var writer = new StreamWriter(filePath);
             ToWriter(writer);
+        }
+
+        public Task ToFileAsync(string filePath)
+        {
+            return Task.Run(() => ToFile(filePath));
         }
 
         public void ToWriter(TextWriter writer)
@@ -86,13 +121,18 @@ namespace CsvSorter
 
             if (writer == null)
                 throw new NullReferenceException("StreamWriter was not set");
-
+            
             var bom = GetBom();
+
+            _onIndexCreationStarted?.Invoke();
 
             CreateIndex(bom);
 
             var sortedIndexes = _headerIndex
                 .Concat(_indexProvider.GetSorted(_descending));
+
+            _onIndexCreationFinished?.Invoke();
+            _onSortingStarted?.Invoke();
 
             WriteSorted(writer, sortedIndexes);
 
@@ -100,6 +140,13 @@ namespace CsvSorter
 
             writer.Flush();
             SeekReader(0);
+
+            _onSortingFinished?.Invoke();
+        }
+
+        public Task ToWriterAsync(TextWriter writer)
+        {
+            return Task.Run(() => ToWriter(writer));
         }
 
         private void WriteSorted(TextWriter writer, IEnumerable<CsvSorterIndex<T>> sortedIndexes)

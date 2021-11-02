@@ -1,3 +1,8 @@
+## 1.0.2
+## Features
+- Added `ToWriterAsync` and `ToFileAsync` methods
+- Added `OnIndexCreationStarted`, `OnIndexCreationFinished`, `OnSortingStarted` and `OnSortingFinished` methods
+
 ## 1.0.1
 ### Bug Fixes
 - Fixed package information
