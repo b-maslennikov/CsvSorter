@@ -171,7 +171,7 @@ namespace CsvSorter
             var bomSize = bom?.Count ?? 0;
             SeekReader(bomSize);
 
-            using var csv = new CsvReader(_reader, _csvConfig);
+            using var csv = new CsvReader(_reader, _csvConfig, true);
 
             if (_typeConverterOptions != null)
                 csv.Context.TypeConverterOptionsCache.AddOptions<T>(_typeConverterOptions);
@@ -239,7 +239,6 @@ namespace CsvSorter
         private void FixCsvConfig()
         {
             _csvConfig.CountBytes = true;
-            _csvConfig.LeaveOpen = true;
         }
 
         private void SeekReader(long offset)
