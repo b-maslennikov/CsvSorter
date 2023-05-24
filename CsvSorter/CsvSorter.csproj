@@ -14,7 +14,7 @@
 	  <RepositoryType>git</RepositoryType>
 	  <RepositoryUrl>https://github.com/b-maslennikov/CsvSorter</RepositoryUrl>
 		<LangVersion>latest</LangVersion>
-		<TargetFrameworks>net50;net60;net70;netstandard2.0;netstandard2.1</TargetFrameworks>
+		<TargetFrameworks>net45;net47;net50;net60;net70;netstandard2.0;netstandard2.1</TargetFrameworks>
   </PropertyGroup>
   <ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
