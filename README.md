@@ -1,6 +1,6 @@
 # CsvSorter
 
-![](CsvSorter/logo.png)
+![](logo.png)
 
 [![Build](https://img.shields.io/appveyor/build/b-maslennikov/CsvSorter/master?style=flat-square)](https://ci.appveyor.com/project/b-maslennikov/CsvSorter) [![Tests](https://img.shields.io/appveyor/tests/b-maslennikov/CsvSorter?style=flat-square)](https://ci.appveyor.com/project/b-maslennikov/CsvSorter/build/tests) [![Issues](https://img.shields.io/github/issues/b-maslennikov/CsvSorter?style=flat-square)](https://github.com/b-maslennikov/CsvSorter/issues) [![License](https://img.shields.io/github/license/b-maslennikov/CsvSorter?style=flat-square)](https://github.com/b-maslennikov/CsvSorter/blob/main/LICENSE) [![Nuget](https://img.shields.io/nuget/v/CsvSorter?style=flat-square)](https://www.nuget.org/packages/CsvSorter)
 
