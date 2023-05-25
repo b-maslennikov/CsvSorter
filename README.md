@@ -14,7 +14,7 @@ PM> Install-Package CsvSorter
 ## Dependencies
 | Package name | Version |
 | - | - |
-| [CsvHelper](https://www.nuget.org/packages/CsvHelper) | >=23.0.0 |
+| [CsvHelper](https://www.nuget.org/packages/CsvHelper) | >=30.0.1 |
 
 ## Avaliable methods
 

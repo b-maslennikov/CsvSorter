@@ -1,13 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using CsvSorter.Entities;
+﻿using CsvSorter.Entities;
 
-namespace CsvSorter
+namespace CsvSorter;
+
+public interface IIndexProvider<T> where T: IComparable
 {
-    public interface IIndexProvider<T> where T: IComparable
-    {
-        void Add(CsvSorterIndex<T> record);
-        IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending);
-        void Clear();
-    }
+    void Add(CsvSorterIndex<T> record);
+    IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending);
+    void Clear();
 }

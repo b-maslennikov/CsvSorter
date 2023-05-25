@@ -1,37 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using CsvSorter.Entities;
+﻿using CsvSorter.Entities;
 
-namespace CsvSorter
+namespace CsvSorter;
+
+public class MemoryIndexProvider<T> : IIndexProvider<T> where T: IComparable
 {
-    public class MemoryIndexProvider<T> : IIndexProvider<T> where T: IComparable
+    private readonly List<CsvSorterIndex<T>> _indexes;
+
+    public MemoryIndexProvider()
     {
-        private readonly List<CsvSorterIndex<T>> _indexes;
+        _indexes = new List<CsvSorterIndex<T>>();
+    }
 
-        public MemoryIndexProvider()
-        {
-            _indexes = new List<CsvSorterIndex<T>>();
-        }
+    public void Add(CsvSorterIndex<T> record)
+    {
+        _indexes.Add(record);
+    }
 
-        public void Add(CsvSorterIndex<T> record)
-        {
-            _indexes.Add(record);
-        }
-
-        public IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending)
-        {
-            if (descending)
-                return _indexes
-                    .OrderByDescending(x => x.Value);
-
+    public IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending)
+    {
+        if (descending)
             return _indexes
-                .OrderBy(x => x.Value);
-        }
+                .OrderByDescending(x => x.Value);
 
-        public void Clear()
-        {
-            _indexes.Clear();
-        }
+        return _indexes
+            .OrderBy(x => x.Value);
+    }
+
+    public void Clear()
+    {
+        _indexes.Clear();
     }
 }

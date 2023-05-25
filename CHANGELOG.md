@@ -1,3 +1,8 @@
+## 1.1.0
+### Features
+- Updated `CsvHelper` package
+- Updated target framework. It is `Standard2.0` now
+
 ## 1.0.2
 ## Features
 - Added `ToWriterAsync` and `ToFileAsync` methods
