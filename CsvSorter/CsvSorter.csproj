@@ -1,22 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <Version>1.1.0</Version>
+        <Version>2.0.0</Version>
         <Title>CsvSorter</Title>
         <Authors>Boris Maslennikov</Authors>
-        <Copyright>Copyright © 2023 Boris Maslennikov</Copyright>
+        <Copyright>Copyright © 2025 Boris Maslennikov</Copyright>
         <Description>A small library that will help you to sort your large CSV files</Description>
         <PackageIcon>logo.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/b-maslennikov/CsvSorter</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageTags>CSV;Sort;Order;SortBy;OrderBy</PackageTags>
+        <PackageTags>CSV;Sort;Order;SortBy;OrderBy;Ascending;Descending</PackageTags>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageReleaseNotes>https://github.com/b-maslennikov/CsvSorter/blob/master/CHANGELOG.md</PackageReleaseNotes>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/b-maslennikov/CsvSorter</RepositoryUrl>
-        <LangVersion>latest</LangVersion>
+        <LangVersion>latestmajor</LangVersion>
+        <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
     <ItemGroup>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

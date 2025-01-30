@@ -7,8 +7,14 @@
 It is a small package that will help you to sort your large CSV files.
 
 ## Instalation
-```
+```text
 PM> Install-Package CsvSorter
+```
+```text
+> dotnet add package CsvSorter
+```
+```xml
+<PackageReference Include="CsvSorter" Version="2.0.0" />
 ```
 
 ## Dependencies
@@ -20,46 +26,67 @@ PM> Install-Package CsvSorter
 
 | Method name | Parameter type | Description |
 | - | - | - |
-| OrderBy&lt;T&gt; | `string`<br>`int` | Describes CSV field type and name (or index) that are going to be used during the sorting.<br>Sort direction: ascending. |
-| OrderByDescending&lt;T&gt; | `string`<br>`int` | Describes CSV field type and name (or index) that are going to be used during the sorting.<br>Sort direction: descending. |
 | Using | `CsvConfiguration` | Sets CsvConfiguration. See [CsvHelper documentation](https://joshclose.github.io/CsvHelper/) |
 |  | `TypeConverterOptions` | Sets TypeConverterOptions. See [CsvHelper documentation](https://joshclose.github.io/CsvHelper/) |
-|  | `IIndexProvider<T>` | Alows to set index provider. Default: `MemoryIndexProvider` |
-| ToFile | `string` | Saves sorted data to a file |
+|  | `IIndexProvider<T>` or `IAsyncIndexProvider<T>` | Sets index provider. Default: `MemoryIndexProvider` |
+|  | `SortDirection` | Sets sorting direction.<br>Default: `Ascending` |
+| ToFileAsync | `string`, `CancellationToken` | Saves sorted data to a file |
+| ToFile | `string` | Saves sorted data to a file  |
+| ToWriterAsync | `TextWriter`, `CancellationToken` | Saves sorted data using provided writer |
 | ToWriter | `TextWriter` | Saves sorted data using provided writer |
 
-## Usage example
+## Basic usage
 ```csharp
 using CsvSorter;
-```
-```csharp
-new StreamReader(@"C:\my_large_file.csv")
-    .OrderBy<int>("id")
-    .ToFile(@"C:\my_large_file_sorted_by_id.csv");
+
+await new StreamReader(@"C:\my_large_file.csv")
+    .GetCsvSorter<int>("id")
+    .ToFileAsync(@"C:\my_large_file_sorted_by_id.csv");
+	
+// or
+
+await new CsvSorter<int>(streamReader, "id")
+    .ToFileAsync(@"C:\my_large_file_sorted_by_id.csv");
 ```
 
-## Index provider
-Default index provider is `MemoryIndexProvider<T>`. It stores index data in the memory.
-You can create your own provider (DatabaseIndexProvider for example) by implementing `IIndexProvider<T>` interface:
+## Index providers
+Default index provider is `MemoryIndexProvider<T>`. It stores index data in the memory.<br>
+You can create your own provider (AzureIndexProvider for example) by implementing `IIndexProvider<T>` or `IAsyncIndexProvider<T>` interfaces:
 ```csharp
-public interface IIndexProvider<T> where T: IComparable
+public interface IIndexProvider<T> where T: IComparable<T>
 {
     void Add(CsvSorterIndex<T> record);
-    IEnumerable<CsvSorterIndex<T>> GetSorted(bool descending);
+    IEnumerable<CsvSorterIndex<T>> GetSorted(SortDirection sortDirection);
     void Clear();
 }
+
+public interface IAsyncIndexProvider<T> where T: IComparable<T>
+{
+    Task AddAsync(CsvSorterIndex<T> record, CancellationToken cancellationToken);
+    IAsyncEnumerable<CsvSorterIndex<T>> GetSorted(SortDirection sortDirection, CancellationToken cancellationToken);
+    Task ClearAsync(CancellationToken cancellationToken);
+}
+```
+
+Please note that only one index provider can be used at a time.
+
+```csharp
+await new CsvSorter<int>(streamReader, "id")
+    .Using(new FirebaseIndexProvider<int>()) // will be ignored
+    .Using(new AzureIndexProvider<int>())    // will be used
+    .ToWriterAsync(writer);
 ```
 
 ## Events
 You can specify 4 events: `OnIndexCreationStarted`, `OnIndexCreationFinished`, `OnSortingStarted` and `OnSortingFinished`
 ```csharp
-new StreamReader(@"C:\my_large_file.csv")
-    .OrderBy<int>(0)
+await new StreamReader(@"C:\my_large_file.csv")
+    .GetCsvSorter<int>(0)
     .OnIndexCreationStarted(() => { logger.Info("Index creation has started"); })
     .OnIndexCreationFinished(() => { logger.Info("Index creation completed"); })
     .OnSortingStarted(() => { logger.Info("Sorting has started"); })
     .OnSortingFinished(() => { logger.Info("Sorting completed"); })
-    .ToWriter(writer);
+    .ToWriterAsync(writer);
 ```
 
 ## A few more examples
@@ -74,11 +101,12 @@ var dateTimeConverterOptions = new TypeConverterOptions
     Formats = new[] { "dd_MM_yyyy" }
 };
 
-new StreamReader(@"C:\my_large_file.csv")
-    .OrderByDescending<DateTime>(3)
+await new StreamReader(@"C:\my_large_file.csv")
+    .GetCsvSorter<DateTime>(3)
+    .Using(SortDirection.Descending)
     .Using(csvConfig)
-    .Using(dateTimeConverterOptions)
-    .ToFile(@"C:\my_large_file_sorted_by_date.csv");
+    .Using(dateTimeConverterOptions)	
+    .ToFileAsync(@"C:\my_large_file_sorted_by_date.csv", cancellationToken);
 ```
 
 ```csharp
@@ -87,9 +115,9 @@ var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
     Delimiter = "|"
 };
 
-new StreamReader(@"C:\my_large_file.csv")
-    .OrderBy<string>("email")
+await new StreamReader(@"C:\my_large_file.csv")
+    .GetCsvSorter<string>("email")
     .Using(csvConfig)
     .Using(new AzureIndexProvider<string>())
-    .ToWriter(writer);
+    .ToWriterAsync(writer);
 ```

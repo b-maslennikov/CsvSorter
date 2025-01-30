@@ -1,11 +1,8 @@
-﻿using CsvSorter.Entities;
-using NUnit.Framework;
-
-namespace CsvSorter.Tests;
+﻿namespace CsvSorter.Tests;
 
 public class IndexProviderTests
 {
-    private MemoryIndexProvider<int> _provider = new MemoryIndexProvider<int>();
+    private MemoryIndexProvider<int> _provider = new();
 
     [SetUp]
     public void Setup()
@@ -17,27 +14,28 @@ public class IndexProviderTests
         _provider.Add(new CsvSorterIndex<int> { Value = 1 });
     }
 
-    [TestCase(false, new[] { 1,2,3 })]
-    [TestCase(true, new[] { 3,2,1 })]
-    public void MemoryIndexProviderWorksAsExpected(bool descending, IEnumerable<int> expected)
+    [TestCase(SortDirection.Ascending, new[] { 1, 2, 3 })]
+    [TestCase(SortDirection.Descending, new[] { 3, 2, 1 })]
+    public void Ensure_MemoryIndexProvider_Works(SortDirection sortDirection, IEnumerable<int> expected)
     {
-        var ordered = _provider.GetSorted(descending)
+        var ordered = _provider
+            .GetSorted(sortDirection)
             .Select(x => x.Value);
-            
-        Assert.That(ordered.SequenceEqual(expected));
+        
+        Assert.That(ordered, Is.EqualTo(expected).AsCollection);
     }
 
     [Test]
-    public void ClearMethodWorks()
+    public void Ensure_Clear_Method_Works()
     {
-        var items = _provider.GetSorted(false);
+        var items = _provider.GetSorted(SortDirection.Ascending);
 
-        Assert.That(items.Any());
+        Assert.That(items.Any(), Is.True);
 
         _provider.Clear();
 
-        items = _provider.GetSorted(false);
+        items = _provider.GetSorted(SortDirection.Ascending);
 
-        Assert.That(!items.Any());
+        Assert.That(items.Any(), Is.False);
     }
 }

@@ -3,68 +3,68 @@ using System.Text.RegularExpressions;
 using CsvHelper;
 using CsvHelper.Configuration;
 using CsvHelper.TypeConversion;
-using CsvSorter.Entities;
 
 namespace CsvSorter;
 
-public class CsvSorter<T> where T : IComparable
+public class CsvSorter<T> where T : IComparable<T>
 {
     private readonly bool _isFieldNameSet;
-    private readonly string _fieldName;
+    private readonly string? _fieldName;
     private readonly int _fieldIndex;
-    private readonly bool _descending;
-    private readonly IList<CsvSorterIndex<T>> _headerIndex;
     private readonly StreamReader _reader;
-    private string _lineEnding;
-    private IIndexProvider<T> _indexProvider;
-    private CsvConfiguration _csvConfig;
-    private TypeConverterOptions _typeConverterOptions;
+    private readonly IndexService<T> _indexService = new(new MemoryIndexProvider<T>());
+    
+    private string? _lineEnding;
+    private CsvConfiguration _csvConfig = new(CultureInfo.InvariantCulture) { CountBytes = true };
+    private TypeConverterOptions? _typeConverterOptions;
+    private SortDirection _sortDirection = SortDirection.Ascending;
+    
+    private Action? _onIndexCreationStarted;
+    private Action? _onIndexCreationFinished;
+    private Action? _onSortingStarted;
+    private Action? _onSortingFinished;
 
-    private Action _onIndexCreationStarted;
-    private Action _onIndexCreationFinished;
-    private Action _onSortingStarted;
-    private Action _onSortingFinished;
-
-    private CsvSorter(StreamReader reader, bool descending)
+    private CsvSorter(StreamReader reader)
     {
-        _reader = reader;
-        _descending = descending;
-
-        _csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture);
-        _headerIndex = new List<CsvSorterIndex<T>>();
-        _indexProvider = new MemoryIndexProvider<T>();
-
-        FixCsvConfig();
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
     }
 
-    internal CsvSorter(StreamReader reader, bool descending, string fieldName) : this(reader, descending)
+    internal CsvSorter(StreamReader reader, string fieldName) : this(reader)
     {
         if (string.IsNullOrWhiteSpace(fieldName))
-            throw new ArgumentException("CSV field name can not be empty.", nameof(fieldName));
+            throw new ArgumentNullException(nameof(fieldName));
 
         _isFieldNameSet = true;
         _fieldName = fieldName;
     }
 
-    internal CsvSorter(StreamReader reader, bool descending, int fieldIndex) : this(reader, descending)
+    internal CsvSorter(StreamReader reader, int fieldIndex) : this(reader)
     {
         if (fieldIndex < 0)
-            throw new ArgumentException("CSV field index can not be negative.", nameof(fieldIndex));
+            throw new ArgumentNullException(nameof(fieldIndex));
 
         _isFieldNameSet = false;
         _fieldIndex = fieldIndex;
     }
 
+    #region Using
+    
     public CsvSorter<T> Using(IIndexProvider<T> provider)
     {
-        _indexProvider = provider;
+        _indexService.SetIndexProvider(provider);
+        return this;
+    }
+
+    public CsvSorter<T> Using(IAsyncIndexProvider<T> provider)
+    {
+        _indexService.SetIndexProvider(provider);
         return this;
     }
 
     public CsvSorter<T> Using(CsvConfiguration config)
     {
         _csvConfig = config;
-        FixCsvConfig();
+        _csvConfig.CountBytes = true;
         return this;
     }
 
@@ -74,6 +74,16 @@ public class CsvSorter<T> where T : IComparable
         return this;
     }
 
+    public CsvSorter<T> Using(SortDirection sortDirection)
+    {
+        _sortDirection = sortDirection;
+        return this;
+    }
+    
+    #endregion
+
+    #region Events
+    
     public CsvSorter<T> OnIndexCreationStarted(Action action)
     {
         _onIndexCreationStarted = action;
@@ -97,76 +107,78 @@ public class CsvSorter<T> where T : IComparable
         _onSortingFinished = action;
         return this;
     }
+    
+    #endregion
 
-    public void ToFile(string filePath)
-    {
-        using var writer = new StreamWriter(filePath);
-        ToWriter(writer);
-    }
-
-    public Task ToFileAsync(string filePath)
-    {
-        return Task.Run(() => ToFile(filePath));
-    }
-
-    public void ToWriter(TextWriter writer)
+    public async Task ToWriterAsync(TextWriter writer, CancellationToken cancellationToken = default)
     {
         if (_reader == null)
             throw new NullReferenceException("StreamReader was not set");
 
         if (writer == null)
             throw new NullReferenceException("StreamWriter was not set");
-            
-        var bom = GetBom();
+
+        var bom = await GetBomAsync();
 
         _onIndexCreationStarted?.Invoke();
 
-        CreateIndex(bom);
-
-        var sortedIndexes = _headerIndex
-            .Concat(_indexProvider.GetSorted(_descending));
+        await CreateIndexAsync(bom, cancellationToken);
 
         _onIndexCreationFinished?.Invoke();
+
         _onSortingStarted?.Invoke();
 
-        WriteSorted(writer, sortedIndexes);
+        var sortedIndexes = _indexService.GetSorted(_sortDirection, cancellationToken);
 
-        _indexProvider.Clear();
+        await WriteSortedAsync(writer, sortedIndexes, cancellationToken);
 
-        writer.Flush();
+        await _indexService.ClearAsync(cancellationToken);
+
+        await writer.FlushAsync();
         SeekReader(0);
 
         _onSortingFinished?.Invoke();
     }
 
-    public Task ToWriterAsync(TextWriter writer)
+    public void ToWriter(TextWriter writer)
     {
-        return Task.Run(() => ToWriter(writer));
+        ToWriterAsync(writer).GetAwaiter().GetResult();
+    }
+    
+    public async Task ToFileAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        await using var writer = new StreamWriter(filePath);
+        await ToWriterAsync(writer, cancellationToken);
     }
 
-    private void WriteSorted(TextWriter writer, IEnumerable<CsvSorterIndex<T>> sortedIndexes)
+    public void ToFile(string filePath)
     {
-        foreach (var index in sortedIndexes)
+        ToFileAsync(filePath).GetAwaiter().GetResult();
+    }
+
+    private async Task WriteSortedAsync(TextWriter writer, IAsyncEnumerable<CsvSorterIndex<T>> sortedIndexes, CancellationToken cancellationToken)
+    {
+        await foreach (var index in sortedIndexes.WithCancellation(cancellationToken))
         {
             SeekReader(index.Offset);
 
             var c = new char[index.Length];
-            _reader.Read(c, 0, index.Length);
+            await _reader.ReadAsync(c, 0, index.Length);
 
-            writer.Write(c);
-                
-            var currentLineEnding = string.Concat(c.Reverse().Take(_lineEnding.Length).Reverse());
+            await writer.WriteAsync(c);
+
+            var currentLineEnding = string.Concat(c.Reverse().Take(_lineEnding!.Length).Reverse());
             if (_lineEnding != currentLineEnding)
-                writer.Write(_lineEnding);
+                await writer.WriteAsync(_lineEnding);
         }
     }
 
-    private void CreateIndex(IReadOnlyCollection<byte> bom)
+    private async Task CreateIndexAsync(IReadOnlyCollection<byte>? bom, CancellationToken cancellationToken)
     {
         var bomSize = bom?.Count ?? 0;
         SeekReader(bomSize);
 
-        using var csv = new CsvReader(_reader, _csvConfig, true);
+        using var csv = new CsvReader(_reader, _csvConfig, leaveOpen: true);
 
         if (_typeConverterOptions != null)
             csv.Context.TypeConverterOptionsCache.AddOptions<T>(_typeConverterOptions);
@@ -174,27 +186,19 @@ public class CsvSorter<T> where T : IComparable
         long previousByteCount = bomSize;
 
         var getCsvField = _isFieldNameSet
-            ? new Func<IReaderRow, T>(r => r.GetField<T>(_fieldName))
-            : new Func<IReaderRow, T>(r => r.GetField<T>(_fieldIndex));
+            ? new Func<IReaderRow, T?>(r => r.GetField<T>(_fieldName))
+            : new Func<IReaderRow, T?>(r => r.GetField<T>(_fieldIndex));
 
-        CsvSorterIndex<T> GetRecord()
+        if (await csv.ReadAsync())
         {
-            return new()
-            {
-                Value = getCsvField(csv),
-                Offset = previousByteCount,
-                Length = csv.Parser.RawRecord.Length
-            };
-        }
-
-        if (csv.Read())
-        {
+            cancellationToken.ThrowIfCancellationRequested();
+            
             _lineEnding ??= Regex.Match(csv.Parser.RawRecord, "(\r\n|\r|\n)$").Groups[0].Value;
 
             if (csv.Configuration.HasHeaderRecord)
             {
                 csv.ReadHeader();
-                _headerIndex.Add(new CsvSorterIndex<T>
+                _indexService.SetHeaderIndex(new CsvSorterIndex<T>
                 {
                     Offset = previousByteCount,
                     Length = csv.Parser.RawRecord.Length
@@ -202,38 +206,43 @@ public class CsvSorter<T> where T : IComparable
             }
             else
             {
-                _indexProvider.Add(GetRecord());
+                await _indexService.AddIndexAsync(GetIndexFromRecord(), cancellationToken);
             }
 
             previousByteCount = csv.Parser.ByteCount + bomSize;
         }
 
-        while (csv.Read())
+        while (await csv.ReadAsync())
         {
-            _indexProvider.Add(GetRecord());
+            cancellationToken.ThrowIfCancellationRequested();
+            await _indexService.AddIndexAsync(GetIndexFromRecord(), cancellationToken);
             previousByteCount = csv.Parser.ByteCount + bomSize;
         }
+
+        return;
+
+        CsvSorterIndex<T> GetIndexFromRecord() => new()
+        {
+            Value = getCsvField(csv),
+            Offset = previousByteCount,
+            Length = csv.Parser.RawRecord.Length
+        };
     }
 
-    private IReadOnlyCollection<byte> GetBom()
+    private async Task<IReadOnlyCollection<byte>?> GetBomAsync()
     {
         _reader.Peek();
         SeekReader(0);
 
         var preamble = _reader.CurrentEncoding.GetPreamble();
         var c = new char[1];
-        _reader.Read(c, 0, 1);
+        await _reader.ReadAsync(c, 0, 1);
         var possibleBomChar = _reader.CurrentEncoding.GetBytes(c);
         var hasBom = preamble.SequenceEqual(possibleBomChar);
 
         return hasBom
             ? preamble
             : null;
-    }
-
-    private void FixCsvConfig()
-    {
-        _csvConfig.CountBytes = true;
     }
 
     private void SeekReader(long offset)
